@@ -1,4 +1,3 @@
-"use strict";
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -8,8 +7,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-Object.defineProperty(exports, "__esModule", { value: true });
-const promises_1 = require("readline/promises");
+import { createInterface } from "readline/promises";
+/** the list of answers */
 const pairs = [
     {
         search: [
@@ -306,7 +305,7 @@ const pairs = [
         responses: [
             "I see, your %1",
             "Why do you say that your %1?",
-            "When your %1, how do you feel?"
+            "When your %1, how did you feel?"
         ]
     },
     {
@@ -579,6 +578,7 @@ const pairs = [
         ]
     }
 ];
+/** repeating answers for eliza */
 const repeating = [
     "there's no reason to repeat yourself",
     "don't repeat yourself...",
@@ -586,59 +586,95 @@ const repeating = [
     "yes, go on",
     "you can say that"
 ];
+// the last user response
 let lastMessage = "";
+/**
+ * sends a message to eliza
+ * @param message user response
+ * @returns eliza response
+ */
 function eliza(message) {
-    message = message.toLowerCase();
-    message = message.replace("i'm", "i am").replace("you're", "you are").replace("he's", "he is");
+    message = message.toLowerCase(); // remove uppercase
+    message = message.replace("i'm", "i am").replace("you're", "you are").replace("he's", "he is").replace("they're", "they are"); // change abbrevations to full forms
+    // repeating itself
     if (message === lastMessage) {
         let resInd = Math.floor(Math.random() * repeating.length);
         return repeating[resInd];
     }
+    // save the last message
     lastMessage = message;
+    // for every response pair
     for (const pair of pairs) {
-        // console.log(pair);
-        let responseGroups = [];
-        let found = false;
+        let responseGroups = []; // an array storing the groups
+        let found = false; // if the response was found
+        // search for every possible acceptable user esponse
         for (const searchRegExp of pair.search) {
-            searchRegExp.lastIndex = 0;
+            searchRegExp.lastIndex = 0; // safety reasons
+            // get all matches and unpack them (i don't want stupid iterator)
             let matches = [...message.matchAll(searchRegExp)];
+            // if there was no mathces, then it wasn't found there
             if (matches.length === 0) {
                 continue;
             }
+            // for every match
             for (const match of matches) {
+                // add to response group. skipping the first one
                 for (let i = 1; i < match.length; i++) {
                     responseGroups.push(match[i]);
                 }
                 break;
             }
+            // mark it as found
             found = true;
         }
+        // if no found, then skip it
         if (!found)
             continue;
+        // get round response index
         let resInd = Math.floor(Math.random() * pair.responses.length);
+        // get that response
         let retString = pair.responses[resInd];
+        // replace all groups (%n) -> n+1 capture group
         while (true) {
-            let ind = retString.search("%");
+            let ind = retString.search("%"); // find group to replace
             if (ind === -1)
-                break;
-            let num = Number(retString[ind + 1]);
+                break; // if there was no groups, then it's done
+            let num = Number(retString[ind + 1]); // get a number of that group
+            // replace it
             retString = retString.slice(0, ind) + responseGroups[num] + retString.slice(ind + 2);
         }
+        // return the result
         return retString;
     }
 }
 // console.log(eliza("i love my mother!"));
+/**
+ * creates an interactive chat
+ */
 function createChat() {
     return __awaiter(this, void 0, void 0, function* () {
-        const intr = yield (0, promises_1.createInterface)({
+        // creates an interace
+        const intr = yield createInterface({
             input: process.stdin,
             output: process.stdout
         });
+        // till user wants to use it
         while (true) {
-            let s = yield intr.question(">> ");
-            let w = eliza(s) + "\n";
-            intr.write(w);
+            let userResponse = yield intr.question(">> ");
+            // quitting
+            if (userResponse === "quit" || userResponse === "q" || "!q")
+                break;
+            // get eliza
+            let elizaResponse = eliza(userResponse) + "\n";
+            // write eliza
+            intr.write(elizaResponse);
         }
+        intr.close();
     });
 }
-createChat();
+// auto run if that's not used as an import
+if (import.meta.url.endsWith(process.argv[1])) {
+    createChat();
+}
+const version = 0.8;
+export { createChat, eliza, version };
