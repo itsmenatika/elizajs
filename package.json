@@ -1,15 +1,45 @@
 {
   "name": "elizajs",
+  "homepage": "https://github.com/itsmenatika/elizajs",
+  "bugs": {
+    "url": "https://github.com/itsmenatika/elizajs/issues",
+    "email": "itsmenatika@gmail.com"
+  },
+  "funding": {
+    "type": "individual",
+    "url": "https://github.com/itsmenatika"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/itsmenatika/elizajs.git"
+  },
   "version": "1.0.0",
   "description": "The implementetion in Javascript/Typescript of ELIZA chatbot created throughout 1964-1967",
-  "main": "index.js",
-  "type": "commonjs",
+  "main": "eliza.js",
+  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "@types/node": "^24.3.1"
-  }
+  "keywords": [
+    "eliza",
+    "bot",
+    "implementation",
+    "elizajs",
+    "ai",
+    "intelligence",
+    "artificial",
+    "si",
+    "chat",
+    "chatbot"
+  ],
+  "author": "itsmenatika",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^25.2.3"
+  },
+  "files": [
+    "index.js",
+    "LICENSE",
+    "README.md"
+  ]
 }

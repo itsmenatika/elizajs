@@ -1,13 +1,6 @@
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 import { createInterface } from "readline/promises";
+import { pathToFileURL } from "node:url";
+import { exit } from "node:process";
 /** the list of answers */
 const pairs = [
     {
@@ -252,6 +245,7 @@ const pairs = [
     {
         search: [
             /^i feel (.*)/g,
+            /^i felt (.*)/g,
             /^my feelings are (.*)/g,
             /^i think i feel(.*)/g
         ],
@@ -595,7 +589,7 @@ let lastMessage = "";
  */
 function eliza(message) {
     message = message.toLowerCase(); // remove uppercase
-    message = message.replace("i'm", "i am").replace("you're", "you are").replace("he's", "he is").replace("they're", "they are"); // change abbrevations to full forms
+    message = message.replace("i'm", "i am").replace("you're", "you are").replace("he's", "he is").replace("they're", "they are").replace("you've", "you have"); // change abbrevations to full forms
     // repeating itself
     if (message === lastMessage) {
         let resInd = Math.floor(Math.random() * repeating.length);
@@ -640,41 +634,108 @@ function eliza(message) {
             if (ind === -1)
                 break; // if there was no groups, then it's done
             let num = Number(retString[ind + 1]); // get a number of that group
+            const replaceTo = responseGroups[num].
+                replace("i am", "G4(").replace("you are", "G5(").
+                replace("i am", "G4(").replace("you are", "G5(").
+                replace("i was", "G6(").replace("you were", "G7(").
+                replace("me", "G2(").replace("you", "G3(").
+                replace("G2(", "you").replace("G3(", "me").
+                replace("G4(", "you are").replace("G5(", "i am").
+                replace("G6(", "you were").replace("G7(", "i was");
             // replace it
-            retString = retString.slice(0, ind) + responseGroups[num] + retString.slice(ind + 2);
+            retString = retString.slice(0, ind) + replaceTo + retString.slice(ind + 2);
         }
         // return the result
         return retString;
     }
+    return "";
 }
 // console.log(eliza("i love my mother!"));
+const welcomeString = `
+Welcome to\n
+\n
+EEEEEE   LL        IIII   ZZZZZZ    AAAAA\n
+EE       LL         II      ZZ     AA   AA\n
+EEEEEE   LL         II     ZZ      AAAAAAA\n
+EE       LL         II    ZZ       AA   AA\n
+EEEEEE   LLLLLL    IIII   ZZZZZZ   AA   AA\n
+\n
+Eliza was an early chatbot developed from 1964 to 1967 at MIT by Joseph Weizenbaum.\n
+That implementation of that chatbot was created in 2025 by itsmenatika in javascript.\n
+MIT LICENSED.\n
+\nWrite 'bye' to leave\n\nHow can i help you?
+`;
 /**
  * creates an interactive chat
  */
-function createChat() {
-    return __awaiter(this, void 0, void 0, function* () {
-        // creates an interace
-        const intr = yield createInterface({
-            input: process.stdin,
-            output: process.stdout
-        });
-        // till user wants to use it
-        while (true) {
-            let userResponse = yield intr.question(">> ");
-            // quitting
-            if (userResponse === "quit" || userResponse === "q" || "!q")
-                break;
-            // get eliza
-            let elizaResponse = eliza(userResponse) + "\n";
-            // write eliza
-            intr.write(elizaResponse);
-        }
-        intr.close();
+async function createChat(opt = {}) {
+    // creates an interace
+    const intr = await createInterface({
+        input: opt.in ? opt.in : process.stdin,
+        output: opt.out ? opt.out : process.stdout
     });
+    // start screen molde
+    switch (opt.screenMode) {
+        case 'clear':
+            intr.write(`\x1bc`);
+            break;
+        case 'buffer':
+        default:
+            intr.write(`\x1b[?1049h`);
+        case "print":
+            break;
+    }
+    // prints the welcoem
+    if (opt.printWelcome !== undefined ? opt.printWelcome : true) {
+        if (opt.welcomeString) {
+            intr.write(opt.welcomeString);
+        }
+        else {
+            intr.write(welcomeString);
+        }
+    }
+    // till user wants to use it
+    while (true) {
+        let userResponse = await intr.question(">> ");
+        // quitting
+        if (userResponse === "quit" || userResponse === "bye" || userResponse === "q" || userResponse === "!q")
+            break;
+        // get eliza
+        let elizaResponse = eliza(userResponse) + "\n";
+        // write eliza
+        intr.write(elizaResponse);
+    }
+    // leave the buffer if neccessary
+    if (opt.screenMode === "buffer" || !opt.screenMode) {
+        intr.write(`\x1b[?1049l`);
+    }
+    // close it
+    intr.close();
 }
-// auto run if that's not used as an import
-if (import.meta.url.endsWith(process.argv[1])) {
-    createChat();
+// console.log(import.meta.url.replaceAll("/", "\\\\"), process.argv);
+// // auto run if that's not used as an import
+// UNCOMMENT FOR THE COMMONJS
+// if(require.main === module){
+//     dealWithNotBeingImported();
+// }
+// UNCOMMENT FOR THE STANDARD
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+    dealWithNotBeingImported();
 }
-const version = 0.8;
-export { createChat, eliza, version };
+const version = 1.0;
+function dealWithNotBeingImported() {
+    // get additional arguments
+    const additionalArgs = process.argv.slice(2);
+    // if there was no arguments
+    if (additionalArgs.length === 0) {
+        createChat();
+    }
+    // if there were arguments
+    else {
+        const dataToAsk = additionalArgs.join(" ");
+        const response = eliza(dataToAsk);
+        process.stdout.write(response);
+        exit(0);
+    }
+}
+export { createChat, eliza, dealWithNotBeingImported, version };
